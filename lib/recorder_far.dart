@@ -1,9 +1,10 @@
 import 'dart:io';
 import 'package:flutter/material.dart';
 
+import 'package:path/path.dart';
 import 'package:path_provider/path_provider.dart';
 
-import 'package:flutter_audio_recorder/flutter_audio_recorder.dart';
+import 'package:sound_recorder/sound_recorder.dart';
 import 'package:assets_audio_player/assets_audio_player.dart';
 
 class RecorderFAR extends StatefulWidget {
@@ -14,7 +15,7 @@ class RecorderFAR extends StatefulWidget {
 
 class _RecorderFARState extends State<RecorderFAR> {
   // 녹음 위한 객체 저장
-  late FlutterAudioRecorder _recorder;
+  late SoundRecorder _recorder;
   // 재생 위한 객체 저장
   final recordingPlayer = AssetsAudioPlayer();
 
@@ -126,7 +127,7 @@ class _RecorderFARState extends State<RecorderFAR> {
   }
 
   initializer() async {
-    _hasPermission = await FlutterAudioRecorder.hasPermissions;
+    _hasPermission = await SoundRecorder.hasPermissions;
 
     // 내부저장소 경로 로드
     var docsDir = await getApplicationDocumentsDirectory();
@@ -134,17 +135,21 @@ class _RecorderFARState extends State<RecorderFAR> {
     setState(() {
       // 파일 리스트 초기화
       _fileList = loadFiles();
+      print(_fileList);
     });
     if (_fileList.isNotEmpty) {
       _selectedFile = _fileList[0];
     }
 
+    // 동기 관련 문제 해결 필요
     initRecorder(_filePathForRecord);
+    print("call initializer");
   }
 
   initRecorder(filePath) async {
-    _recorder = FlutterAudioRecorder(filePath);
+    _recorder = SoundRecorder(filePath);
     await _recorder.initialized;
+    print("call initRecorder");
   }
 
   List<String> loadFiles() {
@@ -194,6 +199,12 @@ class _RecorderFARState extends State<RecorderFAR> {
       _isRecording = true;
     });
 
+    print("filePathForRecording: $_filePathForRecord");
+    Directory directory = Directory(dirname(_filePathForRecord));
+    if (!directory.existsSync()) {
+      directory.createSync();
+    }
+
     // 녹음 시작
     await _recorder.start();
     _recording = await _recorder.current(channel: 0);
@@ -215,6 +226,9 @@ class _RecorderFARState extends State<RecorderFAR> {
         _selectedFile = _fileList[0];
       }
     });
+
+    // 동기 관련 문제 해결 필요
+    await initRecorder(_filePathForRecord);
   }
 
   Future<void> startPlaying() async {
@@ -224,7 +238,7 @@ class _RecorderFARState extends State<RecorderFAR> {
       autoStart: true,
       showNotification: true,
     );
-    // print("filePathForPlaying $_storagePath/$_selectedFile");
+    print("filePathForPlaying $_storagePath/$_selectedFile");
     recordingPlayer.playlistAudioFinished.listen((event) {
       setState(() {
         _isPlaying = false;
@@ -297,11 +311,7 @@ class _RecorderFARState extends State<RecorderFAR> {
 //   Future<void> startRecording() async {
 
 
-//     // print("filePathForRecording: $_filePathForRecord");
-//     Directory directory = Directory(dirname(_filePathForRecord));
-//     if (!directory.existsSync()) {
-//       directory.createSync();
-//     }
+
 //     _recordingSession.openAudioSession();
 //     // 녹음 시작
 //     await _recordingSession.startRecorder(

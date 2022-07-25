@@ -30,10 +30,11 @@ dependencies:
   flutter:
     sdk: flutter
 
+  path: ^1.8.0
   path_provider: ^2.0.11
 
   # for recording
-  flutter_audio_recorder:
+  sound_recorder: ^0.0.2
   # for playing
   assets_audio_player: ^3.0.3+3
 

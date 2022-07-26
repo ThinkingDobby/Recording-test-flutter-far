@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 
 import 'package:path/path.dart';
 import 'package:path_provider/path_provider.dart';
+import 'package:permission_handler/permission_handler.dart';
 
 import 'package:sound_recorder/sound_recorder.dart';
 import 'package:assets_audio_player/assets_audio_player.dart';
@@ -127,23 +128,22 @@ class _RecorderFARState extends State<RecorderFAR> {
   }
 
   initializer() async {
-    _hasPermission = await SoundRecorder.hasPermissions;
-
     // 내부저장소 경로 로드
     var docsDir = await getApplicationDocumentsDirectory();
     _storagePath = docsDir.path;
     setState(() {
       // 파일 리스트 초기화
       _fileList = loadFiles();
-      print(_fileList);
     });
     if (_fileList.isNotEmpty) {
       _selectedFile = _fileList[0];
     }
 
-    // 동기 관련 문제 해결 필요
-    initRecorder(_filePathForRecord);
-    print("call initializer");
+    await Permission.microphone.request();
+    await Permission.storage.request();
+    await Permission.manageExternalStorage.request();
+
+    _hasPermission = await SoundRecorder.hasPermissions;
   }
 
   initRecorder(filePath) async {
@@ -194,12 +194,14 @@ class _RecorderFARState extends State<RecorderFAR> {
         });
   }
 
-  startRecording() async {
+  Future<void> startRecording() async {
     setState(() {
       _isRecording = true;
     });
 
-    print("filePathForRecording: $_filePathForRecord");
+    await initRecorder(_filePathForRecord);
+
+    // print("filePathForRecording: $_filePathForRecord");
     Directory directory = Directory(dirname(_filePathForRecord));
     if (!directory.existsSync()) {
       directory.createSync();
@@ -210,7 +212,7 @@ class _RecorderFARState extends State<RecorderFAR> {
     _recording = await _recorder.current(channel: 0);
   }
 
-  stopRecording() async {
+  Future<void> stopRecording() async {
     setState(() {
       _isRecording = false;
     });
@@ -226,9 +228,6 @@ class _RecorderFARState extends State<RecorderFAR> {
         _selectedFile = _fileList[0];
       }
     });
-
-    // 동기 관련 문제 해결 필요
-    await initRecorder(_filePathForRecord);
   }
 
   Future<void> startPlaying() async {
